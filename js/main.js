@@ -1,22 +1,100 @@
-// ===== NAVIGATION =====
+// NAVIGATION
 const nav = document.getElementById('mainNav');
 const hamburger = document.getElementById('hamburger');
 const mobileMenu = document.getElementById('mobileMenu');
 
 window.addEventListener('scroll', () => {
   if (window.scrollY > 60) {
-    nav.classList.add('scrolled');
+    nav?.classList.add('scrolled');
   } else {
-    nav.classList.remove('scrolled');
+    nav?.classList.remove('scrolled');
   }
 });
 
 hamburger?.addEventListener('click', () => {
   hamburger.classList.toggle('open');
-  mobileMenu.classList.toggle('open');
+  mobileMenu?.classList.toggle('open');
 });
 
-// ===== MULTI-PAGE SPA =====
+// TESTIMONIALS
+(function () {
+  const track = document.getElementById('testimonialsTrack');
+  const viewport = document.getElementById('testimonialsViewport');
+  const dotsContainer = document.getElementById('testimonialDots');
+  if (!track || !viewport || !dotsContainer) return;
+
+  const cards = track.querySelectorAll('.testimonial-card');
+  let currentIndex = 0;
+  let intervalId = null;
+
+  function getVisibleCount() {
+    if (window.innerWidth <= 768) return 1;
+    if (window.innerWidth <= 1024) return 2;
+    return 3;
+  }
+
+  function maxIndex() {
+    return Math.max(0, cards.length - getVisibleCount());
+  }
+
+  // Build dots — one per "page" (i.e. per possible stopping index)
+  function buildDots() {
+    dotsContainer.innerHTML = '';
+    const pageCount = maxIndex() + 1;
+    for (let i = 0; i < pageCount; i++) {
+      const dot = document.createElement('span');
+      if (i === currentIndex) dot.classList.add('active');
+      dot.addEventListener('click', () => goTo(i));
+      dotsContainer.appendChild(dot);
+    }
+  }
+
+  function updateDots() {
+    const dots = dotsContainer.querySelectorAll('span');
+    dots.forEach((dot, i) => dot.classList.toggle('active', i === currentIndex));
+  }
+
+  function goTo(index) {
+    currentIndex = Math.max(0, Math.min(index, maxIndex()));
+    const card = cards[0];
+    const cardWidth = card.getBoundingClientRect().width;
+    const gap = parseFloat(getComputedStyle(track).gap) || 0;
+    track.style.transform = `translateX(-${currentIndex * (cardWidth + gap)}px)`;
+    updateDots();
+  }
+
+  function slideNext() {
+    const next = currentIndex >= maxIndex() ? 0 : currentIndex + 1;
+    goTo(next);
+  }
+
+  function startAutoSlide() {
+    stopAutoSlide();
+    intervalId = setInterval(slideNext, 5000);
+  }
+
+  function stopAutoSlide() {
+    clearInterval(intervalId);
+  }
+
+  viewport.addEventListener('mouseenter', stopAutoSlide);
+  viewport.addEventListener('mouseleave', startAutoSlide);
+
+  let resizeTimeout;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      buildDots();
+      goTo(Math.min(currentIndex, maxIndex())); // clamp + re-snap position
+    }, 150);
+  });
+
+  buildDots();
+  goTo(0);
+  startAutoSlide();
+})();
+
+// MULTI-PAGE SPA
 function navigateTo(pageId, pushState = true) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const page = document.getElementById(pageId);
@@ -45,13 +123,18 @@ document.addEventListener('click', (e) => {
   if (link) {
     e.preventDefault();
     navigateTo(link.dataset.page);
+    return;
   }
   // Handle therapist cards
   const therapistCard = e.target.closest('[data-therapist]');
   if (therapistCard) {
     e.preventDefault();
-    loadTherapistProfile(therapistCard.dataset.therapist);
-    navigateTo('page-therapist-profile');
+    const profileLoaded = loadTherapistProfile(therapistCard.dataset.therapist);
+    if (profileLoaded) {
+      navigateTo('page-therapist-profile');
+    } else {
+      console.warn(`Therapist profile not found: ${therapistCard.dataset.therapist}`);
+    }
   }
 });
 
@@ -67,7 +150,7 @@ window.addEventListener('load', () => {
   navigateTo(hash, false);
 });
 
-// ===== SCROLL REVEAL =====
+// SCROLL REVEAL
 function initReveal() {
   const reveals = document.querySelectorAll('.page.active .reveal');
   const observer = new IntersectionObserver((entries) => {
@@ -78,18 +161,262 @@ function initReveal() {
   reveals.forEach(el => observer.observe(el));
 }
 
-// ===== THERAPIST TABS =====
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const target = btn.dataset.tab;
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById(target)?.classList.add('active');
+// SERVICE SLIDER
+  (function () {
+    const grid = document.querySelector('.services-grid');
+    const prevBtn = document.querySelector('.slider-btn-prev');
+    const nextBtn = document.querySelector('.slider-btn-next');
+    const dotsContainer = document.querySelector('.slider-dots');
+    const cards = grid.querySelectorAll('.service-card');
+    let currentIndex = 0;
+
+    function isMobile() {
+      return window.innerWidth <= 768;
+    }
+
+    // Build dots
+    cards.forEach((_, i) => {
+      const dot = document.createElement('span');
+      if (i === 0) dot.classList.add('active');
+      dot.addEventListener('click', () => goTo(i));
+      dotsContainer.appendChild(dot);
+    });
+    const dots = dotsContainer.querySelectorAll('span');
+
+    function updateDots() {
+      dots.forEach((dot, i) => dot.classList.toggle('active', i === currentIndex));
+    }
+
+    function goTo(index) {
+      if (!isMobile()) return;
+      currentIndex = Math.max(0, Math.min(index, cards.length - 1));
+      const cardWidth = grid.clientWidth + 16; // width + gap
+      grid.scrollTo({ left: currentIndex * cardWidth, behavior: 'smooth' });
+      updateDots();
+    }
+
+    prevBtn.addEventListener('click', () => goTo(currentIndex - 1));
+    nextBtn.addEventListener('click', () => goTo(currentIndex + 1));
+
+    // Keep index in sync if user swipes manually
+    let scrollTimeout;
+    grid.addEventListener('scroll', () => {
+      if (!isMobile()) return;
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        const cardWidth = grid.clientWidth + 16;
+        currentIndex = Math.round(grid.scrollLeft / cardWidth);
+        updateDots();
+      }, 100);
+    });
+
+    window.addEventListener('resize', () => {
+      if (isMobile()) goTo(currentIndex);
+    });
+  })();
+
+// THERAPIST TABS
+(function () {
+  function isMobile() {
+    return window.innerWidth <= 768;
+  }
+
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const tabContents = document.querySelectorAll('.tab-content');
+  const carousels = {};
+
+  tabBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      // Stop whichever carousel was active before switching
+      Object.values(carousels).forEach((c) => c.stop());
+
+      tabBtns.forEach((b) => b.classList.remove('active'));
+      tabContents.forEach((c) => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+
+      const name = btn.dataset.tab.replace('-tab', '');
+      carousels[name]?.refresh();
+    });
   });
+
+  function initCarousel(name) {
+    const grid = document.querySelector(
+      `[data-carousel="${name}"].therapist-grid, [data-carousel="${name}"].mystery-therapist-grid`
+    );
+    const prevBtn = document.querySelector(`.carousel-prev[data-carousel="${name}"]`);
+    const nextBtn = document.querySelector(`.carousel-next[data-carousel="${name}"]`);
+    const dotsContainer = document.querySelector(`.carousel-dots[data-carousel="${name}"]`);
+    if (!grid || !prevBtn || !nextBtn || !dotsContainer) return;
+
+    const cards = grid.querySelectorAll('.therapist-card');
+    let currentIndex = 0;
+
+    dotsContainer.innerHTML = '';
+    cards.forEach((_, i) => {
+      const dot = document.createElement('span');
+      if (i === 0) dot.classList.add('active');
+      dot.addEventListener('click', () => goTo(i));
+      dotsContainer.appendChild(dot);
+    });
+    const dots = dotsContainer.querySelectorAll('span');
+
+    function updateDots() {
+      dots.forEach((dot, i) => dot.classList.toggle('active', i === currentIndex));
+    }
+
+    function goTo(index) {
+      if (!isMobile()) return;
+      currentIndex = Math.max(0, Math.min(index, cards.length - 1));
+      const cardWidth = grid.clientWidth + 16;
+      grid.scrollTo({ left: currentIndex * cardWidth, behavior: 'smooth' });
+      updateDots();
+    }
+
+    // ---- Auto-slide ----
+    let autoSlideInterval = null;
+
+    function startAutoSlide() {
+      if (!isMobile()) return;
+      stopAutoSlide(); // avoid stacking multiple intervals
+      autoSlideInterval = setInterval(() => {
+        const nextIndex = (currentIndex + 1) % cards.length;
+        goTo(nextIndex);
+      }, 3000);
+    }
+
+    function stopAutoSlide() {
+      if (autoSlideInterval) {
+        clearInterval(autoSlideInterval);
+        autoSlideInterval = null;
+      }
+    }
+
+    grid.addEventListener('mouseenter', stopAutoSlide);
+    grid.addEventListener('mouseleave', startAutoSlide);
+
+    startAutoSlide();
+
+    prevBtn.addEventListener('click', () => goTo(currentIndex - 1));
+    nextBtn.addEventListener('click', () => goTo(currentIndex + 1));
+
+    let scrollTimeout;
+    grid.addEventListener('scroll', () => {
+      if (!isMobile()) return;
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        const cardWidth = grid.clientWidth + 16;
+        currentIndex = Math.round(grid.scrollLeft / cardWidth);
+        updateDots();
+      }, 100);
+    });
+
+    window.addEventListener('resize', () => {
+      if (isMobile()) goTo(currentIndex);
+    });
+
+    carousels[name] = {
+      refresh() {
+        if (isMobile()) {
+          const cardWidth = grid.clientWidth + 16;
+          grid.scrollTo({ left: currentIndex * cardWidth, behavior: 'auto' });
+          startAutoSlide();
+        }
+      },
+      stop: stopAutoSlide
+    };
+  }
+
+  initCarousel('female');
+  initCarousel('male');
+  initCarousel('mystery');
+})();
+
+// CAROUSEL FUNCTIONALITY
+const carouselState = {};
+
+function initCarousels() {
+  const carousels = document.querySelectorAll('[data-carousel]');
+  carousels.forEach(carousel => {
+    const id = carousel.dataset.carousel;
+    if (!carouselState[id]) {
+      carouselState[id] = { currentIndex: 0, autoScrollInterval: null };
+    }
+    const state = carouselState[id];
+    const cards = carousel.querySelectorAll('.therapist-card');
+    const cardCount = cards.length;
+    
+    if (cardCount === 0) return;
+    
+    // Stop existing auto-scroll
+    if (state.autoScrollInterval) {
+      clearInterval(state.autoScrollInterval);
+    }
+    
+    // Reset to first card
+    state.currentIndex = 0;
+    updateCarouselPosition(carousel, state.currentIndex);
+    
+    // Start auto-scroll only on mobile
+    if (window.innerWidth <= 480) {
+      state.autoScrollInterval = setInterval(() => {
+        state.currentIndex = (state.currentIndex + 1) % cardCount;
+        updateCarouselPosition(carousel, state.currentIndex);
+      }, 2000);
+    }
+  });
+}
+
+function updateCarouselPosition(carousel, index) {
+  const translateValue = -index * 100;
+  carousel.style.transform = `translateX(${translateValue}%)`;
+}
+
+// Carousel button click handlers
+document.addEventListener('click', (e) => {
+  const prevBtn = e.target.closest('.carousel-prev');
+  const nextBtn = e.target.closest('.carousel-next');
+  
+  if (prevBtn) {
+    const carouselId = prevBtn.dataset.carousel;
+    const carousel = document.querySelector(`[data-carousel="${carouselId}"]`);
+    if (carousel && carouselState[carouselId]) {
+      const state = carouselState[carouselId];
+      const cardCount = carousel.querySelectorAll('.therapist-card').length;
+      state.currentIndex = (state.currentIndex - 1 + cardCount) % cardCount;
+      updateCarouselPosition(carousel, state.currentIndex);
+      // Reset auto-scroll
+      if (state.autoScrollInterval) clearInterval(state.autoScrollInterval);
+      if (window.innerWidth <= 480) {
+        state.autoScrollInterval = setInterval(() => {
+          state.currentIndex = (state.currentIndex + 1) % cardCount;
+          updateCarouselPosition(carousel, state.currentIndex);
+        }, 2000);
+      }
+    }
+  }
+  
+  if (nextBtn) {
+    const carouselId = nextBtn.dataset.carousel;
+    const carousel = document.querySelector(`[data-carousel="${carouselId}"]`);
+    if (carousel && carouselState[carouselId]) {
+      const state = carouselState[carouselId];
+      const cardCount = carousel.querySelectorAll('.therapist-card').length;
+      state.currentIndex = (state.currentIndex + 1) % cardCount;
+      updateCarouselPosition(carousel, state.currentIndex);
+      // Reset auto-scroll
+      if (state.autoScrollInterval) clearInterval(state.autoScrollInterval);
+      if (window.innerWidth <= 480) {
+        state.autoScrollInterval = setInterval(() => {
+          state.currentIndex = (state.currentIndex + 1) % cardCount;
+          updateCarouselPosition(carousel, state.currentIndex);
+        }, 2000);
+      }
+    }
+  }
 });
 
-// ===== FAQ ACCORDION =====
+// FAQ ACCORDION
 document.addEventListener('click', (e) => {
   const faqQ = e.target.closest('.faq-q');
   if (faqQ) {
@@ -100,7 +427,7 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// ===== THERAPIST PROFILES DATA =====
+// THERAPIST PROFILES DATA
 const therapists = {
   lola: {
     img: 'img/Lola-5.png',
@@ -118,7 +445,8 @@ const therapists = {
       { name: 'Full Body Swedish Massage'},
       { name: 'Aromatherapy Massage'},
       { name: 'Nuru Massage'},
-    ]
+    ],
+    specialties: ['Verified', 'Certified Therapist', 'Background Checked']
   },
   maya: {
     img: 'img/Maya-4.png',
@@ -136,7 +464,8 @@ const therapists = {
       { name: 'Deep Tissue Massage'},
       { name: 'Aromatherapy Massage'},
       { name: 'Nuru Massage'},
-    ]
+    ],
+    specialties: ['Verified', 'Certified Therapist', 'Background Checked']
   },
   dan: {
     img: 'img/Dan-2.png',
@@ -155,7 +484,8 @@ const therapists = {
       { name: 'Deep Tissue Massage'},
       { name: 'Sports Massage'},
       { name: 'Assisted Stretching'},
-    ]
+    ],
+    specialties: ['Verified', 'Certified Therapist', 'Background Checked']
   },
   nora: {
     img: 'img/Nora-2.png',
@@ -173,7 +503,8 @@ const therapists = {
       { name: 'Deep Tissue Massage'},
       { name: 'Aromatherapy Massage'},
       { name: 'Nuru Massage'},
-    ]
+    ],
+    specialties: ['Verified', 'Certified Therapist', 'Background Checked']
   },
   alison: {
     img: 'img/Maya-4.png',
@@ -191,7 +522,8 @@ const therapists = {
       { name: 'Full Body Swedish Massage'},
       { name: 'Deep Tissue Massage'},
       { name: 'Sports  Massage'},
-    ]
+    ],
+    specialties: ['Verified', 'Certified Therapist', 'Background Checked']
   },
   sally: {
     img: 'img/Sally3.png',
@@ -207,15 +539,64 @@ const therapists = {
       { name: 'Deep Tissue Massage'},
       { name: 'Aromatherapy Massage'},
       { name: 'Nuru Massage'},
-    ]
+    ],
+    specialties: ['Verified', 'Certified Therapist', 'Background Checked']
+  },
+  "mystery-male": {
+    img: 'img/default-m.jpg',
+    name: 'Mystery Male Therapist',
+    gender: 'Male',
+    specialty: 'Wellness Therapist',
+    tagline: 'Book now to discover your expert therapist',
+    experience: 'Varies',
+    rating: '★ 5.0',
+    height: 'TBA',
+    languages: 'English, Swahili',
+    bio: [
+      'Our mystery male therapist arrives fully prepared with premium tools and a tailored treatment designed to exceed your expectations.',
+      'Enjoy a professional session with a trusted therapist chosen to match your needs, whether you seek deep muscle release, relaxation, or recovery support.'
+    ],
+    services: [
+      { name: 'Tailored to your needs'}
+    ],
+    specialties: ['Verified', 'Certified Therapist', 'Background Checked']
+  },
+  "mystery-female": {
+    img: 'img/default-f.jpg',
+    name: 'Mystery Female Therapist',
+    gender: 'Female',
+    specialty: 'Wellness Therapist',
+    tagline: 'Book now to discover your expert therapist',
+    experience: 'Varies',
+    rating: '★ 5.0',
+    height: 'TBA',
+    languages: 'English, Swahili',
+    bio: [
+      'Our mystery female therapist arrives fully prepared with premium tools and a tailored treatment designed to exceed your expectations.',
+      'Enjoy a professional session with a trusted therapist chosen to match your needs, whether you seek deep muscle release, relaxation, or recovery support.'
+    ],
+    services: [
+      { name: 'Tailored to your needs'}
+    ],
+    specialties: ['Verified', 'Certified Therapist', 'Background Checked']
   }
+};
+
+const therapistGalleries = {
+  lola: ['img/Lola-5.png', 'img/Lola-4.jpeg', 'img/Lola-3.jpeg', 'img/Lola-2.jpeg', 'img/Lola-1.jpeg'],
+  maya: ['img/Maya-4.png', 'img/Maya-2.jpeg', 'img/Maya-3.jpeg', 'img/Maya-1.jpeg'],
+  dan: ['img/Dan-2.png', 'img/Dan-1.jpeg'],
+  nora: ['img/Nora-2.png', 'img/Nora-1.png', 'img/Nora-3.png'],
+  alison: ['img/Alison-2.png', 'img/Alison-1.jpeg'],
+  sally: ['img/Sally3.png', 'img/Sally-2.png', 'img/Sally-1.png']
 };
 
 function loadTherapistProfile(id) {
   const t = therapists[id];
-  if (!t) return;
+  if (!t) return false;
   const el = document.getElementById('therapist-profile-content');
-  if (!el) return;
+  if (!el) return false;
+  const gallery = therapistGalleries[id] || [t.img];
   el.innerHTML = `
     <div class="page-hero">
       <div class="container">
@@ -230,7 +611,9 @@ function loadTherapistProfile(id) {
       <div class="container">
         <div class="therapist-profile-grid">
           <div class="therapist-profile-img">
-            <div class="therapist-profile-img-placeholder"><img src="${t.img}" alt="Therapist profile"></div>
+            <div class="profile-gallery">
+              ${gallery.map((src, idx) => `<img src="${src}" alt="${t.name} photo ${idx + 1}" class="${idx === 0 ? 'active' : ''}">`).join('')}
+            </div>
             <div class="profile-badge">
               <div class="profile-badge-row"><span>Experience</span><span>${t.experience}</span></div>
               <div class="profile-badge-row"><span>Rating</span><span class="rating"> ${t.rating}</span></div>
@@ -242,11 +625,10 @@ function loadTherapistProfile(id) {
             <p class="eyebrow">${t.gender} Therapist · ${t.specialty}</p>
             <h1>${t.name}</h1>
             <p class="tagline">"${t.tagline}"</p>
-            
             <div class="profile-bio">
               ${t.bio.map(p => `<p>${p}</p>`).join('')}
             </div>
-            <h3 style="margin-bottom:0.5rem;">Services</h3>
+            <h3 style="margin-bottom:0.5rem;">Specialties</h3>
             <div class="profile-services-list">
               ${t.services.map(s => `
                 <div class="profile-service-item">
@@ -254,18 +636,49 @@ function loadTherapistProfile(id) {
                 </div>
               `).join('')}
             </div>
+            <div class="profile-specialties">
+              ${t.specialties.map(s => `<span class="specialty-tag"><img src="icons/check.png" alt="" class="specialty-icon">${s}</span>`).join('')}
+            </div>
             <div class="profile-book-btns">
-              <a href="https://wa.me/254700000000?text=Hi! I'd like to book a session with ${t.name}" target="_blank" class="btn btn-wa"> <img src="img/icons8-whatsapp-32.png" alt="WhatsApp icon"> WhatsApp Booking</a>
-              <a href="https://t.me/NairobiOasis?text=Hi! I'd like to book ${t.name}" target="_blank" class="btn btn-tg"> <img src="img/icons8-telegram-32.png" alt="Telegram icon"> Telegram Booking</a>
+              <a href="https://wa.me/254700000000?text=Hi! I'd like to book a session with ${t.name}" target="_blank" class="btn btn-wa"> <img src="icons/whatsapp.png" alt="WhatsApp icon"> WhatsApp Booking</a>
             </div>
           </div>
         </div>
       </div>
     </section>
   `;
+  if (typeof initTherapistProfileGallery === 'function') {
+    initTherapistProfileGallery();
+  }
+  return true;
 }
 
-// ===== CONTACT FORM =====
+function initTherapistProfileGallery() {
+  const gallery = document.querySelector('.profile-gallery');
+  if (!gallery) return;
+
+  const images = Array.from(gallery.querySelectorAll('img'));
+
+  let current = 0;
+
+  setInterval(() => {
+    images[current].classList.remove('active');
+
+    current = (current + 1) % images.length;
+
+    images[current].classList.add('active');
+  }, 3000);
+
+  images.forEach((img, index) => {
+    img.addEventListener('click', () => {
+      images.forEach(i => i.classList.remove('active'));
+      img.classList.add('active');
+      current = index;
+    });
+  });
+}
+
+// CONTACT FORM
 const contactForm = document.getElementById('contactForm');
 contactForm?.addEventListener('submit', (e) => {
   e.preventDefault();
@@ -277,7 +690,7 @@ contactForm?.addEventListener('submit', (e) => {
   window.open(`https://wa.me/254700000000?text=${text}`, '_blank');
 });
 
-// ===== BOOKING FORM =====
+// BOOKING FORM
 const bookingForm = document.getElementById('bookingForm');
 bookingForm?.addEventListener('submit', (e) => {
   e.preventDefault();
@@ -296,7 +709,3 @@ bookingForm?.addEventListener('submit', (e) => {
   }
 });
 
-// ===== INIT =====
-document.addEventListener('DOMContentLoaded', () => {
-  initReveal();
-});

@@ -17,14 +17,11 @@ Instead of visiting a spa, clients can book expert therapists who arrive fully e
 - HTML5 / CSS3 / JavaScript
 
 ## Project Structure
-src/
   -css/
   -js/
-public/
-  -assets/
-    -icons/
-    -img/
-    -vid/
+  -icons/
+  -img/
+  -vid/
 index.html
 
 ## Suggested Future Improvements
