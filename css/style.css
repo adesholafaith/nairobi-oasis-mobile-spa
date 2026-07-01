@@ -854,8 +854,6 @@ p {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1.5rem;
-  margin-bottom: 5rem;
-  padding-bottom: 3rem;
 }
 
 .mystery-therapist-grid,
@@ -1491,7 +1489,7 @@ footer {
 .contact-item-icon {
   width: 44px;
   height: 44px;
-  background: var(--sage-light);
+  background: var(--earth);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1670,7 +1668,7 @@ footer {
 .value-icon {
   width: 50px;
   height: 50px;
-  background: var(--sage-light);
+  background: var(--earth);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1862,9 +1860,9 @@ footer {
 
 .faq-item.open .faq-toggle {
   transform: rotate(45deg);
-  background: var(--sage-dark);
+  background: var(--earth);
   color: var(--cream);
-  border-color: var(--sage-dark);
+  border-color: var(--earth);
 }
 
 .faq-a {
@@ -2755,7 +2753,7 @@ footer {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(122, 139, 110, 0.8);
+    background: var(--earth);
     color: white;
     border: none;
     width: 40px;
