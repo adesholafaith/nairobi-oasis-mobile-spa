@@ -12,8 +12,25 @@ window.addEventListener('scroll', () => {
 });
 
 hamburger?.addEventListener('click', () => {
+  const isOpen = mobileMenu.classList.toggle('open');
+
   hamburger.classList.toggle('open');
-  mobileMenu?.classList.toggle('open');
+
+  hamburger.setAttribute('aria-expanded', isOpen);
+});
+
+mobileMenu?.querySelectorAll('a').forEach(link => {
+  link.addEventListener('click', () => {
+    mobileMenu.classList.remove('open');
+    hamburger.classList.remove('open');
+    hamburger.setAttribute('aria-expanded', false);
+  });
+});
+
+// VIDEOS 
+document.addEventListener("DOMContentLoaded", () => {
+  const video = document.querySelector(".hero-video");
+  video.playbackRate = 0.5;
 });
 
 // TESTIMONIALS
@@ -444,7 +461,6 @@ const therapists = {
       { name: 'Deep Tissue Massage' },
       { name: 'Full Body Swedish Massage'},
       { name: 'Aromatherapy Massage'},
-      { name: 'Nuru Massage'},
     ],
     specialties: ['Verified', 'Certified Therapist', 'Background Checked']
   },
@@ -582,21 +598,11 @@ const therapists = {
   }
 };
 
-const therapistGalleries = {
-  lola: ['img/Lola-5.png', 'img/Lola-4.jpeg', 'img/Lola-3.jpeg', 'img/Lola-2.jpeg', 'img/Lola-1.jpeg'],
-  maya: ['img/Maya-4.png', 'img/Maya-2.jpeg', 'img/Maya-3.jpeg', 'img/Maya-1.jpeg'],
-  dan: ['img/Dan-2.png', 'img/Dan-1.jpeg'],
-  nora: ['img/Nora-2.png', 'img/Nora-1.png', 'img/Nora-3.png'],
-  alison: ['img/Alison-2.png', 'img/Alison-1.jpeg'],
-  sally: ['img/Sally3.png', 'img/Sally-2.png', 'img/Sally-1.png']
-};
-
 function loadTherapistProfile(id) {
   const t = therapists[id];
   if (!t) return false;
   const el = document.getElementById('therapist-profile-content');
   if (!el) return false;
-  const gallery = therapistGalleries[id] || [t.img];
   el.innerHTML = `
     <div class="page-hero">
       <div class="container">
@@ -611,9 +617,7 @@ function loadTherapistProfile(id) {
       <div class="container">
         <div class="therapist-profile-grid">
           <div class="therapist-profile-img">
-            <div class="profile-gallery">
-              ${gallery.map((src, idx) => `<img src="${src}" alt="${t.name} photo ${idx + 1}" class="${idx === 0 ? 'active' : ''}">`).join('')}
-            </div>
+            <img src="${t.img}" alt="${t.name}" class="therapist-profile-image">
             <div class="profile-badge">
               <div class="profile-badge-row"><span>Experience</span><span>${t.experience}</span></div>
               <div class="profile-badge-row"><span>Rating</span><span class="rating"> ${t.rating}</span></div>
@@ -640,7 +644,7 @@ function loadTherapistProfile(id) {
               ${t.specialties.map(s => `<span class="specialty-tag"><img src="icons/check.png" alt="" class="specialty-icon">${s}</span>`).join('')}
             </div>
             <div class="profile-book-btns">
-              <a href="https://wa.me/254700000000?text=Hi! I'd like to book a session with ${t.name}" target="_blank" class="btn btn-wa"> <img src="icons/whatsapp.png" alt="WhatsApp icon"> WhatsApp Booking</a>
+              <a href="https://wa.me/254143001962?text=Hi! I'd like to book a session with ${t.name}" target="_blank" class="btn btn-wa"> <img src="icons/whatsapp.png" alt="WhatsApp icon"> WhatsApp Booking</a>
             </div>
           </div>
         </div>
@@ -687,7 +691,7 @@ contactForm?.addEventListener('submit', (e) => {
   const service = data.get('service');
   const msg = data.get('message') || 'I would like to book a session.';
   const text = encodeURIComponent(`Hi Nairobi Oasis!\n\nName: ${name}\nService: ${service}\n\n${msg}`);
-  window.open(`https://wa.me/254700000000?text=${text}`, '_blank');
+  window.open(`https://wa.me/254143001962?text=${text}`, '_blank');
 });
 
 // BOOKING FORM
@@ -705,7 +709,8 @@ bookingForm?.addEventListener('submit', (e) => {
   if (channel === 'telegram') {
     window.open(`https://t.me/NairobiOasis?text=${text}`, '_blank');
   } else {
-    window.open(`https://wa.me/254700000000?text=${text}`, '_blank');
+    window.open(`https://wa.me/254143001962?text=${text}`, '_blank');
   }
 });
+
 
